@@ -1,3 +1,3 @@
 #System programming pratice
 
-This is my owm pratice about system programming in school
+This is my own pratice about system programming in school
