@@ -3,16 +3,16 @@
 
 #define INSTRUCTION_LEN 10
 
-#define DEF_INSTRUCTION(name) [name] = \
+#define DEF_INSTRUCTION(name) [_ ## name] = \
 	{._name = #name, .func = name ## _ ## handler}
 
 enum {
-	ADD,
-	DEC,
-	MOV,
-	PUSH,
-	POP,
-	INT,
+	_add,
+	_dec,
+	_mov,
+	_push,
+	_pop,
+	_int,
 	INSTRUCTION_CNT	
 } SUPPORT_INSTRUCTIONS;
 
