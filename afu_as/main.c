@@ -479,16 +479,24 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		if(is_8bit_reg(args[1].value)) {
 			//w-bit = 0
 			machine_code[0] = MOV_IMM16 | reg_list[args[1].value].value;
+
+			/* Only 8-bits data */
+			machine_code[1] = (char)args[0].value;
+
+			return 2;
 		} else if(is_16bit_reg(args[1].value)) {
 			//w-bit = 1
 			machine_code[0] = MOV_IMM16 | reg_list[args[1].value].value | 0x8;
+
+			/* Move 16-bits data in little endian */
+			machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
+			machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
+
+			return 3;
+		} else {
+			printf("afu_as: error: invalid data size\n");
+			return -1;
 		}
-
-		/* Move 16-bit data in little endian */
-		machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
-		machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
-
-		return 3;
 	}
 
 	return 0;
