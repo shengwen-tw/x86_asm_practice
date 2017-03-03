@@ -57,8 +57,8 @@ typedef struct {
 } reg_t;
 
 enum {
-	ADD16 = 0x00,
-	ADD8 = 0x01,
+	ADD16 = 0x01,
+	ADD8 = 0x00,
 	MOV16 = 0x89,
 	MOV8 = 0x88,
 	MOV_IMM16 = 0xb0,
