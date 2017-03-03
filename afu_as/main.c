@@ -429,9 +429,10 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 			return -1;
 		}
 
-		machine_code[1] |= REG_ADDR_MOD; //Set addressing mode
-		machine_code[1] |= reg_list[args[1].value].value << 3; //Set destination register
-		machine_code[1] |= reg_list[args[0].value].value; //Set source register
+		machine_code[1] = 0;
+		machine_code[1] |= (char)REG_ADDR_MOD; //Set addressing mode
+		machine_code[1] |= (char)reg_list[args[1].value].value; //Set destination register
+		machine_code[1] |= (char)reg_list[args[0].value].value << 3; //Set source register
 
 		return 2;
 	}
@@ -469,9 +470,10 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 			return -1;
 		}
 
-		machine_code[1] |= REG_ADDR_MOD; //Set addressing mode
-		machine_code[1] |= reg_list[args[1].value].value << 3; //Set destination register
-		machine_code[1] |= reg_list[args[0].value].value; //Set source register
+		machine_code[1] = 0;
+		machine_code[1] |= (char)REG_ADDR_MOD; //Set addressing mode
+		machine_code[1] |= (char)reg_list[args[1].value].value; //Set destination register
+		machine_code[1] |= (char)reg_list[args[0].value].value << 3; //Set source register
 
 		return 2;
 	/* Immediate value */
