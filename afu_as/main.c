@@ -53,11 +53,15 @@ int main(int argc, char **argv)
 	char bin_memory_pool[1024] = {'\0'};
 
 	if(argc != 3) {
-		printf("afu as: x86 assembler\n"
-			"=============================\n"
+		printf("afu as: simple 16-bit x86 assembler\n"
+			"===================================\n"
 			"Usage: ./afu_as source binary\n"
+			"===================================\n"
 			"Support instructions:\n"
-			"add, dec, mov, push, pop, int\n");
+			"add, dec, mov, push, pop, int\n"
+			"Support registers:\n"
+			"ax, bx, cx, dx, bp, si, di, sp\n"
+		);
 		return 0;
 	}
 
@@ -349,6 +353,15 @@ int mov_handler(char *args)
 	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+
+	if(arg_cnt > 2) {
+		printf("afu_as: error: too many argument for \"mov\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 2) {
+		printf("afu_as: error: too few argument for \"mov\" instruction\n");
+		return -1;
+	}
+
 	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
 	instruction_debug_print("[mov]", splited_args, instruction_args, arg_cnt);
