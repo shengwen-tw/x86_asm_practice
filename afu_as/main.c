@@ -100,6 +100,12 @@ int generate_binary(char *source_code, char *binary_code)
 		/* Search the end of code line */
 		char *line_end = strchr(line_start, '\n');
 
+		//Skip empty line
+		if((line_end - line_start) == 0) {
+			line_start++;
+			continue;
+		}
+
 		/* According to POSIX standard, the last byte before EOF
 		   should be \n indicate it is not a binary file */
 		if(line_end == NULL) {

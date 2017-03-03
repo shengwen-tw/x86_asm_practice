@@ -1,3 +1,20 @@
-movb $'H' , %al  #Char to print
-movb $0x0e, %ah  #TTY mode for 10h interrupt
-int  $0x10       #Print interrupt
+#Use BIOS interrupt print hello world
+mov $'H' , %al  #char to print
+mov $0x0e, %ah  #tty mode
+int $0x10       #call interrupt
+
+mov $'e' , %al
+mov $0x0e, %ah
+int $0x10
+
+mov $'l' , %al
+mov $0x0e, %ah
+int $0x10
+
+mov $'l' , %al
+mov $0x0e, %ah
+int  $0x10
+
+mov $'o' , %al
+mov $0x0e, %ah
+int $0x10
