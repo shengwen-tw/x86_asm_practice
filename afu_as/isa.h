@@ -25,11 +25,6 @@ enum {
 	INSTRUCTION_CNT	
 } SUPPORT_INSTRUCTIONS;
 
-typedef struct {
-	char _name[INSTRUCTION_LEN];
-	int (*func)(char *arguments);
-} instruction_list_t;
-
 enum {
 	DIRECT_VALUE,
 	REGISTER
@@ -59,5 +54,10 @@ typedef struct {
 	int type; //Direct value, register, etc...
 	int value;
 } instruction_arg_t;
+
+typedef struct {
+	char _name[INSTRUCTION_LEN];
+	int (*func)(instruction_arg_t *args, int arg_cnt);
+} instruction_list_t;
 
 #endif

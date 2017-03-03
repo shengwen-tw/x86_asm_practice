@@ -7,12 +7,12 @@ int generate_binary(char *source_code, char *binary_code);
 int parse_instruction(char *line_start, char *line_end, char *binary_code);
 
 /* Instruction handlers */
-int add_handler(char *args);
-int dec_handler(char *args);
-int mov_handler(char *args);
-int push_handler(char *args);
-int pop_handler(char *args);
-int int_handler(char *args);
+int add_handler(instruction_arg_t *args, int arg_cnt);
+int dec_handler(instruction_arg_t *args, int arg_cnt);
+int mov_handler(instruction_arg_t *args, int arg_cnt);
+int push_handler(instruction_arg_t *args, int arg_cnt);
+int pop_handler(instruction_arg_t *args, int arg_cnt);
+int int_handler(instruction_arg_t *args, int arg_cnt);
 
 /* Define supported instruction for this assembler */
 instruction_list_t instruction_list[INSTRUCTION_CNT] = {
@@ -124,7 +124,7 @@ int generate_binary(char *source_code, char *binary_code)
 }
 
 /* Split a token of the instruction and return the address of next token */
-char *split_token(char *token, char *instruction, int *size)
+static char *split_token(char *token, char *instruction, int *size)
 {
 	int i = 0;
 
@@ -157,7 +157,7 @@ char *split_token(char *token, char *instruction, int *size)
 	token[i + 1] = '\0';
 }
 
-void remove_comment_and_space(char *old_str, char *new_str)
+static void remove_comment_and_space(char *old_str, char *new_str)
 {
 	int new_str_len = 0;
 
@@ -179,7 +179,7 @@ void remove_comment_and_space(char *old_str, char *new_str)
 	new_str[new_str_len] = '\0';
 }
 
-int split_arguments(char *str, char (*args)[MAX_CHAR_LINE], int *arg_cnt)
+static int split_arguments(char *str, char (*args)[MAX_CHAR_LINE], int *arg_cnt)
 {
 	char new_str[MAX_CHAR_LINE];
 	remove_comment_and_space(str, new_str);
@@ -211,34 +211,7 @@ int split_arguments(char *str, char (*args)[MAX_CHAR_LINE], int *arg_cnt)
 	(*arg_cnt)++;
 }
 
-/* Parse a line of assembly code and append its machine code to the output file,
-   the function returns the size of machine code  */
-int parse_instruction(char *line_start, char *line_end, char *binary_code)
-{
-	char *line_ptr = line_start;
-	char first_token[MAX_CHAR_LINE] = {'\0'};
-	int line_size = line_end - line_start;
-
-	line_ptr = split_token(first_token, line_start, &line_size);
-
-	/* Identify the instruction type and call its handler */
-	int i = 0;
-	for(i = 0; i < INSTRUCTION_CNT; i++) {
-		if(strcmp(instruction_list[i]._name, first_token) == 0) {
-			return instruction_list[i].func(line_ptr);
-		}
-	}
-
-	if(first_token[0] == '#') {
-		return 0; //Ignore this line, it is a comment
-	}
-
-	printf("afu_as: error: invaild instruction \"%s\"\n", first_token);
-
-	return -1;
-}
-
-int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
+static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 	instruction_arg_t *args, int arg_cnt)
 {
 	int i;
@@ -264,7 +237,8 @@ int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 				args[i].value = decimal_number;
 			} else {
 				//Unknown type value
-				return -1;
+				printf("afu_as: error: invalid number\n");
+				return 1;
 			}
 		} else if(args_in_str[i][0] == '%') {
 			//Register
@@ -298,7 +272,7 @@ int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 }
 
 #if USE_DEBUG_PRINT
-void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
+static void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
 	instruction_arg_t *instruction_args, int arg_cnt)
 {
 	printf("%s", name);
@@ -322,38 +296,57 @@ void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
 }
 #endif
 
-int add_handler(char *args)
+/* Parse a line of assembly code and append its machine code to the output file,
+   the function returns the size of machine code  */
+int parse_instruction(char *line_start, char *line_end, char *binary_code)
 {
+	char *line_ptr = line_start;
+	char first_token[MAX_CHAR_LINE] = {'\0'};
+	int line_size = line_end - line_start;
+
+	line_ptr = split_token(first_token, line_start, &line_size);
+
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
 	instruction_arg_t instruction_args[MAX_ARGS];
 
-	split_arguments(args, splited_args, &arg_cnt);
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
+	/* Identify the instruction type and call its handler */
+	int i = 0;
+	for(i = 0; i < INSTRUCTION_CNT; i++) {
+		if(strcmp(instruction_list[i]._name, first_token) == 0) {
+			//Split and parse arguments
+			split_arguments(line_ptr, splited_args, &arg_cnt);
+			if(parse_arguments_str(splited_args, instruction_args, arg_cnt)) {
+				return -1; //Failed to parse to argument
+			}
 
-	instruction_debug_print("[add]", splited_args, instruction_args, arg_cnt);
+			//Debug print
+			instruction_debug_print(first_token, splited_args, instruction_args, arg_cnt);
+
+			//Call instruction handler and pass the argument
+			return instruction_list[i].func(instruction_args, arg_cnt);
+		}
+	}
+
+	if(first_token[0] == '#') {
+		return 0; //Ignore this line, it is a comment
+	}
+
+	printf("afu_as: error: invaild instruction \"%s\"\n", first_token);
+
+	return -1;
 }
 
-int dec_handler(char *args)
+int add_handler(instruction_arg_t *args, int arg_cnt)
 {
-	int arg_cnt = 0;
-	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
-	instruction_arg_t instruction_args[MAX_ARGS];
-
-	split_arguments(args, splited_args, &arg_cnt);
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
-
-	instruction_debug_print("[dec]", splited_args, instruction_args, arg_cnt);
 }
 
-int mov_handler(char *args)
+int dec_handler(instruction_arg_t *args, int arg_cnt)
 {
-	int arg_cnt = 0;
-	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
-	instruction_arg_t instruction_args[MAX_ARGS];
+}
 
-	split_arguments(args, splited_args, &arg_cnt);
-
+int mov_handler(instruction_arg_t *args, int arg_cnt)
+{
 	if(arg_cnt > 2) {
 		printf("afu_as: error: too many argument for \"mov\" instruction\n");
 		return -1;
@@ -361,44 +354,18 @@ int mov_handler(char *args)
 		printf("afu_as: error: too few argument for \"mov\" instruction\n");
 		return -1;
 	}
-
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
-
-	instruction_debug_print("[mov]", splited_args, instruction_args, arg_cnt);
 }
 
-int push_handler(char *args)
+int push_handler(instruction_arg_t *args, int arg_cnt)
 {
-	int arg_cnt = 0;
-	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
-	instruction_arg_t instruction_args[MAX_ARGS];
-
-	split_arguments(args, splited_args, &arg_cnt);
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
-
-	instruction_debug_print("[push]", splited_args, instruction_args, arg_cnt);
 }
 
-int pop_handler(char *args)
+int pop_handler(instruction_arg_t *args, int arg_cnt)
 {
-	int arg_cnt = 0;
-	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
-	instruction_arg_t instruction_args[MAX_ARGS];
-
-	split_arguments(args, splited_args, &arg_cnt);
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
-
-	instruction_debug_print("[pop]", splited_args, instruction_args, arg_cnt);
 }
 
-int int_handler(char *args)
+int int_handler(instruction_arg_t *args, int arg_cnt)
 {
-	int arg_cnt = 0;
-	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
-	instruction_arg_t instruction_args[MAX_ARGS];
-
-	split_arguments(args, splited_args, &arg_cnt);
-
 	if(arg_cnt > 1) {
 		printf("afu_as: error: too many argument for \"int\" instruction\n");
 		return -1;
@@ -406,10 +373,4 @@ int int_handler(char *args)
 		printf("afu_as: error: too few argument for \"int\" instruction\n");
 		return -1;
 	}
-
-	if(parse_arguments_str(splited_args, instruction_args, arg_cnt)) {
-		return -1;
-	}
-
-	instruction_debug_print("[int]", splited_args, instruction_args, arg_cnt);
 }
