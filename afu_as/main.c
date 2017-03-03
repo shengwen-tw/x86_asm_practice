@@ -180,11 +180,18 @@ int split_arguments(char *str, char (*args)[MAX_CHAR_LINE], int *arg_cnt)
 	char new_str[MAX_CHAR_LINE];
 	remove_comment_and_space(str, new_str);
 
+	size_t str_len = strlen(new_str);
+
+	if(str_len == 0) {
+		*arg_cnt = 0;
+		return 0;
+	}
+
 	*arg_cnt = 0;
 	int cur_i = 0; //Current argument's index
 
 	int i;
-	for(i = 0; i < strlen(new_str); i++) {
+	for(i = 0; i < str_len; i++) {
 		if(new_str[i] == ',') {
 			args[*arg_cnt][cur_i] = '\0';
 			(*arg_cnt)++;
@@ -266,15 +273,19 @@ int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 			for(j = 0; j < REG_CNT; j++) {
 				if(strcmp(register_list[j], args_in_str[i] + 1) == 0) {
 					args[i].value = j;
+					match = 1;
 				}
 			}
 
 			/* Unknown register name */
 			if(match == 0) {
+				printf("afu_as: error: unknown register name\n");
 				return 1;
 			}
 		} else {
 			//Unknown
+			printf("afu_as: error: unknown instruction argument\n");
+
 			return 1;
 		}
 	}
@@ -293,6 +304,10 @@ void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
 	}
 
 	printf(" -> ");
+
+	if(arg_cnt == 0) {
+		printf(" no argument");
+	}
 
 	for(i = 0; i < arg_cnt; i++) {
 		printf("(type:%d, value:%d)",
@@ -370,7 +385,18 @@ int int_handler(char *args)
 	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
-	parse_arguments_str(splited_args, instruction_args, arg_cnt);
+
+	if(arg_cnt > 1) {
+		printf("afu_as: error: too many argument for \"int\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 1) {
+		printf("afu_as: error: too few argument for \"int\" instruction\n");
+		return -1;
+	}
+
+	if(parse_arguments_str(splited_args, instruction_args, arg_cnt)) {
+		return -1;
+	}
 
 	instruction_debug_print("[int]", splited_args, instruction_args, arg_cnt);
 }
