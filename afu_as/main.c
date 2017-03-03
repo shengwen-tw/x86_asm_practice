@@ -23,6 +23,30 @@ instruction_list_t instruction_list[INSTRUCTION_CNT] = {
 	DEF_INSTRUCTION(int)	
 };
 
+/* Define supported register */
+char *register_list[] = {
+	DEF_REGISTER(ah),
+	DEF_REGISTER(al),
+	DEF_REGISTER(ax),
+
+	DEF_REGISTER(bh),
+	DEF_REGISTER(bl),
+	DEF_REGISTER(bx),
+
+	DEF_REGISTER(ch),
+	DEF_REGISTER(cl),
+	DEF_REGISTER(cx),
+
+	DEF_REGISTER(dh),
+	DEF_REGISTER(dl),
+	DEF_REGISTER(dx),
+
+	DEF_REGISTER(bp),
+	DEF_REGISTER(si),
+	DEF_REGISTER(di),
+	DEF_REGISTER(sp)
+};
+
 int main(int argc, char **argv)
 {
 	char src_memory_pool[1024] = {'\0'};
@@ -203,14 +227,78 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 	return -1;
 }
 
+int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
+	instruction_arg_t *args, int arg_cnt)
+{
+	int i;
+	for(i = 0; i < arg_cnt; i++) {
+		if(args_in_str[i][0] == '$') {
+			//Direct value
+			args[i].type = DIRECT_VALUE;
+
+			int decimal_number;
+
+			/* Parse value */
+			if(args_in_str[i][1] == '\'' & args_in_str[i][3] == '\'') {
+				//Is char
+				args[i].value = (int)args_in_str[i][2];
+			} else if(sscanf(args_in_str[i] + 1, "%x", &decimal_number) != EOF) {
+				//Hexadecimal number
+				args[i].value = decimal_number;
+			} else if(sscanf(args_in_str[i] + 1, "%d", &decimal_number)) {
+				//Decimal number
+				args[i].value = decimal_number;
+			} else if(sscanf(args_in_str[i] + 1, "%o", &decimal_number)) {
+				//Octal number
+				args[i].value = decimal_number;
+			} else {
+				//Unknown type value
+				return -1;
+			}
+		} else if(args_in_str[i][0] == '%') {
+			//Register
+			args[i].type = REGISTER;
+
+			int match = 0;
+
+			/* Parse register name */
+			int j;
+			for(j = 0; j < REG_CNT; j++) {
+				if(strcmp(register_list[j], args_in_str[i] + 1) == 0) {
+					args[i].value = j;
+				}
+			}
+
+			/* Unknown register name */
+			if(match == 0) {
+				return 1;
+			}
+		} else {
+			//Unknown
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 #if USE_DEBUG_PRINT
-void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE], int arg_cnt)
+void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
+	instruction_arg_t *instruction_args, int arg_cnt)
 {
 	printf("%s", name);
 	int i;
 	for(i = 0; i < arg_cnt; i++) {
 		printf("(%s)", args[i]);
 	}
+
+	printf(" -> ");
+
+	for(i = 0; i < arg_cnt; i++) {
+		printf("(type:%d, value:%d)",
+			instruction_args[i].type, instruction_args[i].value);
+	}
+
 	printf("\n");
 }
 #endif
@@ -219,58 +307,70 @@ int add_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[add]", splited_args, arg_cnt);
+	instruction_debug_print("[add]", splited_args, instruction_args, arg_cnt);
 }
 
 int dec_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[dec]", splited_args, arg_cnt);
+	instruction_debug_print("[dec]", splited_args, instruction_args, arg_cnt);
 }
 
 int mov_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[mov]", splited_args, arg_cnt);
+	instruction_debug_print("[mov]", splited_args, instruction_args, arg_cnt);
 }
 
 int push_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[push]", splited_args, arg_cnt);
+	instruction_debug_print("[push]", splited_args, instruction_args, arg_cnt);
 }
 
 int pop_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[pop]", splited_args, arg_cnt);
+	instruction_debug_print("[pop]", splited_args, instruction_args, arg_cnt);
 }
 
 int int_handler(char *args)
 {
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+	instruction_arg_t instruction_args[MAX_ARGS];
 
 	split_arguments(args, splited_args, &arg_cnt);
+	parse_arguments_str(splited_args, instruction_args, arg_cnt);
 
-	instruction_debug_print("[int]", splited_args, arg_cnt);
+	instruction_debug_print("[int]", splited_args, instruction_args, arg_cnt);
 }

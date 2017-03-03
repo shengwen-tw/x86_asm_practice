@@ -15,3 +15,6 @@ objdump:
 
 gdbauto:
 	cgdb --args ${ELF} test.s test.bin
+
+test:
+	./afu_as test.s test.bin

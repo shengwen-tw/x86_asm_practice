@@ -8,6 +8,8 @@
 #define DEF_INSTRUCTION(name) [_ ## name] = \
 	{._name = #name, .func = name ## _ ## handler}
 
+#define DEF_REGISTER(reg_name) #reg_name
+
 #define USE_DEBUG_PRINT 1
 #if !USE_DEBUG_PRINT
 	#define instruction_debug_print(...)
@@ -28,8 +30,33 @@ typedef struct {
 	int (*func)(char *arguments);
 } instruction_list_t;
 
+enum {
+	DIRECT_VALUE,
+	REGISTER
+} argument_type;
+
+enum {
+	ah,
+	al,
+	ax,
+	bh,
+	bl,
+	bx,
+	ch,
+	cl,
+	cx,
+	dh,
+	dl,
+	dx,
+	bp,
+	si,
+	di,
+	sp,
+	REG_CNT
+} SUPPORT_REGISTER;
+
 typedef struct {
-	int mode; //Direct value, register, etc...
+	int type; //Direct value, register, etc...
 	int value;
 } instruction_arg_t;
 
