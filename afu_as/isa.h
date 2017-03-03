@@ -50,6 +50,10 @@ enum {
 	REG_CNT
 } SUPPORT_REGISTER;
 
+enum {
+	INT_IMM8 = 0xcd
+} OPCODE;
+
 typedef struct {
 	int type; //Direct value, register, etc...
 	int value;
@@ -57,7 +61,7 @@ typedef struct {
 
 typedef struct {
 	char _name[INSTRUCTION_LEN];
-	int (*func)(instruction_arg_t *args, int arg_cnt);
+	int (*func)(instruction_arg_t *args, int arg_cnt, char *machine_code);
 } instruction_list_t;
 
 #endif

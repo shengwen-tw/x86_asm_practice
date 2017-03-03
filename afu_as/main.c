@@ -7,12 +7,12 @@ int generate_binary(char *source_code, char *binary_code);
 int parse_instruction(char *line_start, char *line_end, char *binary_code);
 
 /* Instruction handlers */
-int add_handler(instruction_arg_t *args, int arg_cnt);
-int dec_handler(instruction_arg_t *args, int arg_cnt);
-int mov_handler(instruction_arg_t *args, int arg_cnt);
-int push_handler(instruction_arg_t *args, int arg_cnt);
-int pop_handler(instruction_arg_t *args, int arg_cnt);
-int int_handler(instruction_arg_t *args, int arg_cnt);
+int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int dec_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 
 /* Define supported instruction for this assembler */
 instruction_list_t instruction_list[INSTRUCTION_CNT] = {
@@ -272,27 +272,54 @@ static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 }
 
 #if USE_DEBUG_PRINT
-static void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE],
-	instruction_arg_t *instruction_args, int arg_cnt)
+static void instruction_debug_print(
+	char *name, char (*args)[MAX_CHAR_LINE],
+	instruction_arg_t *instruction_args,
+	int arg_cnt, char *machine_code,
+	int machine_code_size)
 {
-	printf("%s", name);
+	char buf[128];
+	int offset = 0;
 	int i;
+
+#if 1   /* Print instruction and machine code*/
+
+	//Instruction
+	offset += sprintf(buf, "%s ", name);
 	for(i = 0; i < arg_cnt; i++) {
-		printf("(%s)", args[i]);
+		offset += sprintf(buf + offset, "%s", args[i]);
+		if(i + 1 < arg_cnt) {
+			offset += sprintf(buf + offset, ",");
+		}
 	}
 
-	printf(" -> ");
+	//Machine code
+	offset += sprintf(buf + offset, " :");
+
+	for(i = 0; i < machine_code_size; i++) {
+		offset += sprintf(buf + offset, " %02x", machine_code[i] & 0xff); //0xff, cast to int
+	}
+
+	printf("%s\n", buf);
+#endif
+
+#if 0   /* Print argument's type and value */
+	offset = 0;
+
+	offset += sprintf(buf, " |_ [%s]", name);
 
 	if(arg_cnt == 0) {
-		printf(" no argument");
+		offset += sprintf(buf + offset, " no argument");
 	}
 
+	//Arguments
 	for(i = 0; i < arg_cnt; i++) {
-		printf("(type:%d, value:%d)",
+		offset += sprintf(buf + offset, "(type:%d, value:%d)",
 			instruction_args[i].type, instruction_args[i].value);
 	}
 
-	printf("\n");
+	printf("%s\n", buf);
+#endif
 }
 #endif
 
@@ -310,6 +337,8 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
 	instruction_arg_t instruction_args[MAX_ARGS];
 
+	char machine_code[5]; //XXX:Max machine code byte is 5
+
 	/* Identify the instruction type and call its handler */
 	int i = 0;
 	for(i = 0; i < INSTRUCTION_CNT; i++) {
@@ -320,11 +349,15 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 				return -1; //Failed to parse to argument
 			}
 
-			//Debug print
-			instruction_debug_print(first_token, splited_args, instruction_args, arg_cnt);
+			/* Call instruction handler and pass the argument, the handler will generate
+			   the machine code and return its size */
+			int size = instruction_list[i].func(instruction_args, arg_cnt, machine_code);
 
-			//Call instruction handler and pass the argument
-			return instruction_list[i].func(instruction_args, arg_cnt);
+			//Debug print
+			instruction_debug_print(first_token, splited_args,
+				instruction_args, arg_cnt, machine_code, size);
+
+			return size;
 		}
 	}
 
@@ -337,15 +370,17 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 	return -1;
 }
 
-int add_handler(instruction_arg_t *args, int arg_cnt)
+int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	return 0;
 }
 
-int dec_handler(instruction_arg_t *args, int arg_cnt)
+int dec_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	return 0;
 }
 
-int mov_handler(instruction_arg_t *args, int arg_cnt)
+int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
 	if(arg_cnt > 2) {
 		printf("afu_as: error: too many argument for \"mov\" instruction\n");
@@ -354,17 +389,21 @@ int mov_handler(instruction_arg_t *args, int arg_cnt)
 		printf("afu_as: error: too few argument for \"mov\" instruction\n");
 		return -1;
 	}
+
+	return 0;
 }
 
-int push_handler(instruction_arg_t *args, int arg_cnt)
+int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	return 0;
 }
 
-int pop_handler(instruction_arg_t *args, int arg_cnt)
+int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	return 0;
 }
 
-int int_handler(instruction_arg_t *args, int arg_cnt)
+int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
 	if(arg_cnt > 1) {
 		printf("afu_as: error: too many argument for \"int\" instruction\n");
@@ -373,4 +412,9 @@ int int_handler(instruction_arg_t *args, int arg_cnt)
 		printf("afu_as: error: too few argument for \"int\" instruction\n");
 		return -1;
 	}
+
+	machine_code[0] = (char)INT_IMM8;
+	machine_code[1] = (char)args[0].value;
+
+	return 2;
 }
