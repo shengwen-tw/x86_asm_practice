@@ -24,27 +24,27 @@ instruction_list_t instruction_list[INSTRUCTION_CNT] = {
 };
 
 /* Define supported register */
-char *register_list[] = {
-	DEF_REGISTER(ah),
-	DEF_REGISTER(al),
-	DEF_REGISTER(ax),
+reg_t reg_list[] = {
+	DEF_REGISTER(ah, 4),
+	DEF_REGISTER(al, 0),
+	DEF_REGISTER(ax, 0),
 
-	DEF_REGISTER(bh),
-	DEF_REGISTER(bl),
-	DEF_REGISTER(bx),
+	DEF_REGISTER(bh, 7),
+	DEF_REGISTER(bl, 3),
+	DEF_REGISTER(bx, 3),
 
-	DEF_REGISTER(ch),
-	DEF_REGISTER(cl),
-	DEF_REGISTER(cx),
+	DEF_REGISTER(ch, 5),
+	DEF_REGISTER(cl, 1),
+	DEF_REGISTER(cx, 1),
 
-	DEF_REGISTER(dh),
-	DEF_REGISTER(dl),
-	DEF_REGISTER(dx),
+	DEF_REGISTER(dh, 6),
+	DEF_REGISTER(dl, 2),
+	DEF_REGISTER(dx, 2),
 
-	DEF_REGISTER(bp),
-	DEF_REGISTER(si),
-	DEF_REGISTER(di),
-	DEF_REGISTER(sp)
+	DEF_REGISTER(bp, 5),
+	DEF_REGISTER(si, 6),
+	DEF_REGISTER(di, 7),
+	DEF_REGISTER(sp, 4)
 };
 
 int main(int argc, char **argv)
@@ -249,7 +249,7 @@ static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 			/* Parse register name */
 			int j;
 			for(j = 0; j < REG_CNT; j++) {
-				if(strcmp(register_list[j], args_in_str[i] + 1) == 0) {
+				if(strcmp(reg_list[j].name, args_in_str[i] + 1) == 0) {
 					args[i].value = j;
 					match = 1;
 				}
@@ -323,6 +323,25 @@ static void instruction_debug_print(
 }
 #endif
 
+int is_8bit_reg(int reg)
+{
+	if(reg == ah || reg == al || reg == bh || reg == bl ||
+	   reg == ch || reg == cl || reg == dh || reg == dl) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int is_16bit_reg(int reg)
+{
+	if(reg == ax || reg == bx || reg == cx || reg == dx) {
+		return 1;
+	}
+
+	return 0;
+}
+
 /* Parse a line of assembly code and append its machine code to the output file,
    the function returns the size of machine code  */
 int parse_instruction(char *line_start, char *line_end, char *binary_code)
@@ -354,8 +373,10 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 			int size = instruction_list[i].func(instruction_args, arg_cnt, machine_code);
 
 			//Debug print
-			instruction_debug_print(first_token, splited_args,
-				instruction_args, arg_cnt, machine_code, size);
+			if(size != -1) {
+				instruction_debug_print(first_token, splited_args,
+					instruction_args, arg_cnt, machine_code, size);
+			}
 
 			return size;
 		}
@@ -372,6 +393,36 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 
 int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	if(arg_cnt > 2) {
+		printf("afu_as: error: too many argument for \"add\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 2) {
+		printf("afu_as: error: too few argument for \"add\" instruction\n");
+		return -1;
+	}
+
+	/* Register addressing mode */
+	if(args[0].type == REGISTER & args[1].type == REGISTER) {
+		/* Decide opcode */
+		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
+			//8-bit size data
+			machine_code[0] = ADD_8; //Opcode, s-bit = 1
+		} else if(is_16bit_reg(args[0].value) && is_16bit_reg(args[1].value)) {
+			//16-bit size data
+			machine_code[0] = ADD_16; //Opcode, s-bit = 0
+		} else {
+			printf("afu_as: error: operands size are different passed"
+				"through \"add\" instruction\n");
+			return -1;
+		}
+
+		machine_code[1] |= REG_ADDR_MOD; //Set addressing mode
+		machine_code[1] |= reg_list[args[1].value].value << 3; //Set destination register
+		machine_code[1] |= reg_list[args[0].value].value; //Set source register
+
+		return 2;
+	}
+
 	return 0;
 }
 

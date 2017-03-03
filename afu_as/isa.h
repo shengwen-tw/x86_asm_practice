@@ -8,7 +8,8 @@
 #define DEF_INSTRUCTION(name) [_ ## name] = \
 	{._name = #name, .func = name ## _ ## handler}
 
-#define DEF_REGISTER(reg_name) #reg_name
+#define DEF_REGISTER(reg_name, reg_val) [reg_name] = \
+	{.name = #reg_name, .value = reg_val} 
 
 #define USE_DEBUG_PRINT 1
 #if !USE_DEBUG_PRINT
@@ -28,7 +29,7 @@ enum {
 enum {
 	DIRECT_VALUE,
 	REGISTER
-} argument_type;
+} ARG_TYPE;
 
 enum {
 	ah,
@@ -50,9 +51,21 @@ enum {
 	REG_CNT
 } SUPPORT_REGISTER;
 
+typedef struct {
+	char *name;
+	char value;
+} reg_t;
+
 enum {
+	ADD_16 = 0x00,
+	ADD_8 = 0x01,
 	INT_IMM8 = 0xcd
 } OPCODE;
+
+enum {
+	 REG_INDIR_ADDR_MOD = 0x0, //Register indirect addressing mode
+	 REG_ADDR_MOD = 0xc0 //Register addressing mode
+} MOD; //2-bits addressing mode field
 
 typedef struct {
 	int type; //Direct value, register, etc...
