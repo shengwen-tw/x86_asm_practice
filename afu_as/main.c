@@ -223,23 +223,35 @@ static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 			int decimal_number;
 
 			/* Parse value */
-			if(args_in_str[i][1] == '\'' & args_in_str[i][3] == '\'') {
+			if(args_in_str[i][1] == '\'' && args_in_str[i][3] == '\'') {
 				//Is char
 				args[i].value = (int)args_in_str[i][2];
-			} else if(sscanf(args_in_str[i] + 1, "%x", &decimal_number) != EOF) {
-				//Hexadecimal number
+				continue;
+			} else if(args_in_str[i][1] == '0') {
+				if(args_in_str[i][2] == 'x' || args_in_str[i][2] == 'X') {
+					/* Is hexadecimal number (0x) */
+					if(sscanf(args_in_str[i] + 1, "%x", &decimal_number) != EOF) {
+						//Hexadecimal number
+						args[i].value = decimal_number;
+						continue;
+					}
+				} else {
+					/* Is octal number (0) */
+					if(sscanf(args_in_str[i] + 1, "%o", &decimal_number) != EOF) {
+						//Octal number
+						args[i].value = decimal_number;
+						continue;
+					}
+				}
+			} else if(sscanf(args_in_str[i] + 1, "%d", &decimal_number) != EOF) {
+				//Is decimal number
 				args[i].value = decimal_number;
-			} else if(sscanf(args_in_str[i] + 1, "%d", &decimal_number)) {
-				//Decimal number
-				args[i].value = decimal_number;
-			} else if(sscanf(args_in_str[i] + 1, "%o", &decimal_number)) {
-				//Octal number
-				args[i].value = decimal_number;
-			} else {
-				//Unknown type value
-				printf("afu_as: error: invalid number\n");
-				return 1;
+				continue;
 			}
+
+			//Unknown type value
+			printf("afu_as: error: invalid number\n");
+			return 1;			
 		} else if(args_in_str[i][0] == '%') {
 			//Register
 			args[i].type = REGISTER;
@@ -406,10 +418,10 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		/* Decide opcode */
 		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
 			//8-bit size data
-			machine_code[0] = ADD_8; //Opcode, s-bit = 1
+			machine_code[0] = ADD8; //Opcode, s-bit = 1
 		} else if(is_16bit_reg(args[0].value) && is_16bit_reg(args[1].value)) {
 			//16-bit size data
-			machine_code[0] = ADD_16; //Opcode, s-bit = 0
+			machine_code[0] = ADD16; //Opcode, s-bit = 0
 		} else {
 			printf("afu_as: error: operands size are different passed"
 				"through \"add\" instruction\n");
@@ -446,10 +458,10 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		/* Decide opcode */
 		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
 			//8-bit size data
-			machine_code[0] = MOV_8; //Opcode, s-bit = 1
+			machine_code[0] = MOV8; //Opcode, s-bit = 1
 		} else if(is_16bit_reg(args[0].value) && is_16bit_reg(args[1].value)) {
 			//16-bit size data
-			machine_code[0] = MOV_16; //Opcode, s-bit = 0
+			machine_code[0] = MOV16; //Opcode, s-bit = 0
 		} else {
 			printf("afu_as: error: operands size are different passed"
 				"through \"add\" instruction\n");
@@ -461,6 +473,15 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		machine_code[1] |= reg_list[args[0].value].value; //Set source register
 
 		return 2;
+	/* Immediate value */
+	} else if(args[0].type == DIRECT_VALUE & args[1].type == REGISTER) {
+		machine_code[0] = 0;
+
+		/* Move 16-bit data in little endian */
+		machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
+		machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
+
+		return 3;
 	}
 
 	return 0;
@@ -486,7 +507,7 @@ int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		return -1;
 	}
 
-	machine_code[0] = (char)INT_IMM8;
+	machine_code[0] = INT_IMM8;
 	machine_code[1] = (char)args[0].value;
 
 	return 2;
