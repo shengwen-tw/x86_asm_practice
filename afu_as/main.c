@@ -347,7 +347,8 @@ int is_8bit_reg(int reg)
 
 int is_16bit_reg(int reg)
 {
-	if(reg == ax || reg == bx || reg == cx || reg == dx) {
+	if(reg == ax || reg == bx || reg == cx || reg == dx ||
+	   reg == bp || reg == si || reg == di || reg == sp) {
 		return 1;
 	}
 
@@ -475,7 +476,13 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		return 2;
 	/* Immediate value */
 	} else if(args[0].type == DIRECT_VALUE & args[1].type == REGISTER) {
-		machine_code[0] = 0;
+		if(is_8bit_reg(args[1].value)) {
+			//w-bit = 0
+			machine_code[0] = MOV_IMM16 | reg_list[args[1].value].value;
+		} else if(is_16bit_reg(args[1].value)) {
+			//w-bit = 1
+			machine_code[0] = MOV_IMM16 | reg_list[args[1].value].value | 0x8;
+		}
 
 		/* Move 16-bit data in little endian */
 		machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
