@@ -18,7 +18,7 @@
 
 enum {
 	_add,
-	_dec,
+	_sub,
 	_mov,
 	_push,
 	_pop,

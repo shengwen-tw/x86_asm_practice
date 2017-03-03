@@ -8,7 +8,7 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code);
 
 /* Instruction handlers */
 int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
-int dec_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
+int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
@@ -17,7 +17,7 @@ int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 /* Define supported instruction for this assembler */
 instruction_list_t instruction_list[INSTRUCTION_CNT] = {
 	DEF_INSTRUCTION(add),
-	DEF_INSTRUCTION(dec),
+	DEF_INSTRUCTION(sub),
 	DEF_INSTRUCTION(mov),
 	DEF_INSTRUCTION(push),
 	DEF_INSTRUCTION(int)	
@@ -439,7 +439,7 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 	return 0;
 }
 
-int dec_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
+int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
 	return 0;
 }
