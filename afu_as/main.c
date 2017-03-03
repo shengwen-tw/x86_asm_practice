@@ -441,6 +441,28 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		return -1;
 	}
 
+	/* Register addressing mode */
+	if(args[0].type == REGISTER & args[1].type == REGISTER) {
+		/* Decide opcode */
+		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
+			//8-bit size data
+			machine_code[0] = MOV_8; //Opcode, s-bit = 1
+		} else if(is_16bit_reg(args[0].value) && is_16bit_reg(args[1].value)) {
+			//16-bit size data
+			machine_code[0] = MOV_16; //Opcode, s-bit = 0
+		} else {
+			printf("afu_as: error: operands size are different passed"
+				"through \"add\" instruction\n");
+			return -1;
+		}
+
+		machine_code[1] |= REG_ADDR_MOD; //Set addressing mode
+		machine_code[1] |= reg_list[args[1].value].value << 3; //Set destination register
+		machine_code[1] |= reg_list[args[0].value].value; //Set source register
+
+		return 2;
+	}
+
 	return 0;
 }
 

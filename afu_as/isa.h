@@ -59,6 +59,8 @@ typedef struct {
 enum {
 	ADD_16 = 0x00,
 	ADD_8 = 0x01,
+	MOV_16 = 0x89,
+	MOV_8 = 0x88,
 	INT_IMM8 = 0xcd
 } OPCODE;
 
