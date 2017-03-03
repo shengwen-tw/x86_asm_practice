@@ -129,12 +129,59 @@ char *split_token(char *token, char *instruction, int *size)
 	token[i + 1] = '\0';
 }
 
+void remove_comment_and_space(char *old_str, char *new_str)
+{
+	int new_str_len = 0;
+
+	int i;
+	for(i = 0; i < strlen(old_str); i++) {
+		//Ignore space
+		if(old_str[i] != ' ') {
+			//Ignore comment and return the new string
+			if(old_str[i] == '#') {
+				new_str[new_str_len] = '\0';
+				return;
+			} else {
+				new_str[new_str_len] = old_str[i];
+				new_str_len++;
+			}
+		}
+	}
+
+	new_str[new_str_len] = '\0';
+}
+
+int split_arguments(char *str, char (*args)[MAX_CHAR_LINE], int *arg_cnt)
+{
+	char new_str[MAX_CHAR_LINE];
+	remove_comment_and_space(str, new_str);
+
+	*arg_cnt = 0;
+	int cur_i = 0; //Current argument's index
+
+	int i;
+	for(i = 0; i < strlen(new_str); i++) {
+		if(new_str[i] == ',') {
+			args[*arg_cnt][cur_i] = '\0';
+			(*arg_cnt)++;
+			cur_i = 0;
+		} else {
+			args[*arg_cnt][cur_i] = new_str[i];
+			cur_i++;
+		}
+	}
+
+	args[*arg_cnt][cur_i] = '\0'; //Padding end null symbol  for last arument
+
+	(*arg_cnt)++;
+}
+
 /* Parse a line of assembly code and append its machine code to the output file,
    the function returns the size of machine code  */
 int parse_instruction(char *line_start, char *line_end, char *binary_code)
 {
 	char *line_ptr = line_start;
-	char first_token[64] = {'\0'};
+	char first_token[MAX_CHAR_LINE] = {'\0'};
 	int line_size = line_end - line_start;
 
 	line_ptr = split_token(first_token, line_start, &line_size);
@@ -156,32 +203,74 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 	return -1;
 }
 
+#if USE_DEBUG_PRINT
+void instruction_debug_print(char *name, char (*args)[MAX_CHAR_LINE], int arg_cnt)
+{
+	printf("%s", name);
+	int i;
+	for(i = 0; i < arg_cnt; i++) {
+		printf("(%s)", args[i]);
+	}
+	printf("\n");
+}
+#endif
+
 int add_handler(char *args)
 {
-	printf("add:%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[add]", splited_args, arg_cnt);
 }
 
 int dec_handler(char *args)
 {
-	printf("dec%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[dec]", splited_args, arg_cnt);
 }
 
 int mov_handler(char *args)
 {
-	printf("mov%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[mov]", splited_args, arg_cnt);
 }
 
 int push_handler(char *args)
 {
-	printf("push%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[push]", splited_args, arg_cnt);
 }
 
 int pop_handler(char *args)
 {
-	printf("pop%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[pop]", splited_args, arg_cnt);
 }
 
 int int_handler(char *args)
 {
-	printf("int%s\n", args);
+	int arg_cnt = 0;
+	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
+
+	split_arguments(args, splited_args, &arg_cnt);
+
+	instruction_debug_print("[int]", splited_args, arg_cnt);
 }
