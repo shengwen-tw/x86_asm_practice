@@ -46,7 +46,7 @@ reg_t reg_list[] = {
 
 int main(int argc, char **argv)
 {
-	char src_memory_pool[1024] = {'\0'};
+	char src_memory_pool[4096] = {'\0'};
 	char bin_memory_pool[512] = {'\0'};
 
 	if(argc != 3) {
@@ -234,12 +234,26 @@ static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 
 			int decimal_number;
 
-			/* Parse value */
-			if(args_in_str[i][1] == '\'' && args_in_str[i][3] == '\'') {
-				//Is char
-				args[i].value = (int)args_in_str[i][2];
-				continue;
-			} else if(args_in_str[i][1] == '0') {
+			/* Check if it is char */
+			if(args_in_str[i][1] == '\'') {
+				if(args_in_str[i][2] == '\\') {
+					if(args_in_str[i][3] == 'n') {
+						args[i].value = (int)'\n';
+						continue;
+					} else if(args_in_str[i][3] == 'r') {
+						args[i].value = (int)'\r';
+						continue;
+					} else {
+						printf("afu_as: error: unsupported escape character");
+						return 1;
+					}
+				} else if(args_in_str[i][3] == '\'') {
+					args[i].value = (int)args_in_str[i][2];
+					continue;
+				}
+			}
+
+			if(args_in_str[i][1] == '0') {
 				if(args_in_str[i][2] == 'x' || args_in_str[i][2] == 'X') {
 					/* Is hexadecimal number (0x) */
 					if(sscanf(args_in_str[i] + 1, "%x", &decimal_number) != EOF) {
@@ -255,7 +269,9 @@ static int parse_arguments_str(char (*args_in_str)[MAX_CHAR_LINE],
 						continue;
 					}
 				}
-			} else if(sscanf(args_in_str[i] + 1, "%d", &decimal_number) != EOF) {
+			}
+
+			if(sscanf(args_in_str[i] + 1, "%d", &decimal_number) != EOF) {
 				//Is decimal number
 				args[i].value = decimal_number;
 				continue;
@@ -302,7 +318,7 @@ static void instruction_debug_print(
 	int arg_cnt, char *machine_code,
 	int machine_code_size)
 {
-	char buf[128];
+	char buf[4096];
 	int offset = 0;
 	int i;
 
@@ -445,6 +461,31 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		machine_code[1] |= (char)reg_list[args[0].value].value << 3; //Set source register
 
 		return 2;
+	} else if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
+		if(args[1].value == al) {
+			//8-bits size data
+			machine_code[0] = ADD_IMM8;
+
+			//Only 8-bit
+			machine_code[1] = (char)args[0].value;
+
+			return 2;
+		} else if(args[1].value == ax) {
+			//16-bit size data
+			machine_code[0] = ADD_IMM16;
+
+			/* Move 16-bits data in little endian */
+			machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
+			machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
+
+			return 3;
+		} else {
+		}
+
+		printf("afu_as: error: \"add\" instructuion can only subtract an immediate value"
+			" to al/ax register\n");
+
+		return -1;
 	}
 
 	printf("afu_as: error: unsupported or invalid instruction operand for \"add\" instruction\n");
