@@ -448,7 +448,37 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 
 int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
-	return 0;
+	if(arg_cnt > 2) {
+		printf("afu_as: error: too many argument for \"mov\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 2) {
+		printf("afu_as: error: too few argument for \"mov\" instruction\n");
+		return -1;
+	}
+
+	if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
+		if(args[1].value == al) {
+			//8-bits size data
+			machine_code[0] = SUB8;
+
+			//Only 8-bit
+			machine_code[1] = (char)args[0].value;
+
+			return 2;
+		} else if(args[1].value == ax) {
+			//16-bit size data
+			machine_code[0] = SUB16;
+
+			/* Move 16-bits data in little endian */
+			machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
+			machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
+
+			return 3;
+		}
+	}
+
+	printf("afu_as: error: only support al/ax register immediate value operation\n");
+	return -1;
 }
 
 int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
@@ -462,7 +492,7 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 	}
 
 	/* Register addressing mode */
-	if(args[0].type == REGISTER & args[1].type == REGISTER) {
+	if(args[0].type == REGISTER && args[1].type == REGISTER) {
 		/* Decide opcode */
 		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
 			//8-bit size data
@@ -507,16 +537,33 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		}
 	}
 
-	return 0;
+	printf("afu_as: error: unsupported or invalid instruction operand\n");
+	return -1;
 }
 
 int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	if(arg_cnt > 1) {
+		printf("afu_as: error: too many argument for \"push\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 1) {
+		printf("afu_as: error: too few argument for \"push\" instruction\n");
+		return -1;
+	}
+
 	return 0;
 }
 
 int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 {
+	if(arg_cnt > 1) {
+		printf("afu_as: error: too many argument for \"pop\" instruction\n");
+		return -1;
+	} else if (arg_cnt < 1) {
+		printf("afu_as: error: too few argument for \"pop\" instruction\n");
+		return -1;
+	}
+
 	return 0;
 }
 
