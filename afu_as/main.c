@@ -334,7 +334,7 @@ static void instruction_debug_print(
 	}
 
 	//Machine code
-	offset += sprintf(buf + offset, " :");
+	offset += sprintf(buf + offset, " \t");
 
 	for(i = 0; i < machine_code_size; i++) {
 		offset += sprintf(buf + offset, " %02x", machine_code[i] & 0xff); //0xff, cast to int
