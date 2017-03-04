@@ -3,7 +3,7 @@
 
 #include "isa.h"
 
-int generate_binary(char *source_code, char *binary_code);
+int generate_binary(char *source_code, char *binary);
 int parse_instruction(char *line_start, char *line_end, char *binary_code);
 
 /* Instruction handlers */
@@ -78,10 +78,11 @@ int main(int argc, char **argv)
 	//Read assembly language source code
 	fread(src_memory_pool, sizeof(char), size, source);
 
-	if(generate_binary(src_memory_pool, bin_memory_pool) == 0) {
+	size_t write_size = generate_binary(src_memory_pool, bin_memory_pool);
+	if(write_size != -1) {
 		//Succeed to generate the binary file
-		FILE *binary = fopen(argv[2], "w");
-		//TODO: fwrite
+		FILE *binary = fopen(argv[2], "wb+");
+		fwrite(bin_memory_pool, sizeof(char), write_size, binary);
 		fclose(binary);
 	}
 
@@ -90,15 +91,16 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-int generate_binary(char *source_code, char *binary_code)
+int generate_binary(char *source_code, char *binary)
 {
-	char *binary_ptr = binary_code;
+	int bin_pos = 0; //The position to write the machine code
 	char *line_start = source_code;
 	char *line_end = source_code;
 
 	while(1) {
 		/* Search the end of code line */
 		char *line_end = strchr(line_start, '\n');
+		char machine_code[15]; //Max machine code size for x86 is 15
 
 		//Skip empty line
 		if((line_end - line_start) == 0) {
@@ -116,17 +118,20 @@ int generate_binary(char *source_code, char *binary_code)
 		*line_end = '\0';
 
 		/* Parse instruction and generate machine code */
-		int write_offset = parse_instruction(line_start, line_end, binary_ptr);
-		if(write_offset == -1) {
+		int bin_append_size = parse_instruction(line_start, line_end, machine_code);
+		if(bin_append_size == -1) {
 			//Error occured, leave
-			return 1;
+			return -1;
 		}
 
-		binary_ptr += write_offset;
+		/* Append the machine code to the binary file */
+		strncpy(binary + bin_pos, machine_code, bin_append_size);
+		bin_pos += bin_append_size;
+
 		line_start = line_end + 1;
 	}
 
-	return 0;
+	return bin_pos;
 }
 
 /* Split a token of the instruction and return the address of next token */
@@ -361,9 +366,9 @@ int is_16bit_reg(int reg)
 	return 0;
 }
 
-/* Parse a line of assembly code and append its machine code to the output file,
-   the function returns the size of machine code  */
-int parse_instruction(char *line_start, char *line_end, char *binary_code)
+/* Parse one line of assembly code and generate the machine code, the function
+   returns the machine code size */
+int parse_instruction(char *line_start, char *line_end, char *machine_code)
 {
 	char *line_ptr = line_start;
 	char first_token[MAX_CHAR_LINE] = {'\0'};
@@ -374,8 +379,6 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code)
 	int arg_cnt = 0;
 	char splited_args[MAX_CHAR_LINE][MAX_CHAR_LINE];
 	instruction_arg_t instruction_args[MAX_ARGS];
-
-	char machine_code[5]; //XXX:Max machine code byte is 5
 
 	/* Identify the instruction type and call its handler */
 	int i = 0;

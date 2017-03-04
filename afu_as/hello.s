@@ -18,3 +18,6 @@ int  $0x10
 mov $'o' , %al
 mov $0x0e, %ah
 int $0x10
+
+sub $0xffff, %ax
+sub $0x12, %al
