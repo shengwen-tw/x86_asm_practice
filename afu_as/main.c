@@ -461,6 +461,7 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		machine_code[1] |= (char)reg_list[args[0].value].value << 3; //Set source register
 
 		return 2;
+	/* Immediate value */
 	} else if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
 		if(args[1].value == al) {
 			//8-bits size data
@@ -479,7 +480,6 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 			machine_code[2] = (args[0].value >> 8) & 0xff; //Highest 8 byte
 
 			return 3;
-		} else {
 		}
 
 		printf("afu_as: error: \"add\" instructuion can only subtract an immediate value"
@@ -502,10 +502,32 @@ int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		return -1;
 	}
 
-	if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
+	/* Register addressing mode */
+	if(args[0].type == REGISTER && args[1].type == REGISTER) {
+		/* Decide opcode */
+		if(is_8bit_reg(args[0].value) && is_8bit_reg(args[1].value)) {
+			//8-bit size data
+			machine_code[0] = SUB8; //Opcode, s-bit = 1
+		} else if(is_16bit_reg(args[0].value) && is_16bit_reg(args[1].value)) {
+			//16-bit size data
+			machine_code[0] = SUB16; //Opcode, s-bit = 0
+		} else {
+			printf("afu_as: error: operands size are different passed"
+				"through \"sub\" instruction\n");
+			return -1;
+		}
+
+		machine_code[1] = 0;
+		machine_code[1] |= (char)REG_ADDR_MOD; //Set addressing mode
+		machine_code[1] |= (char)reg_list[args[1].value].value; //Set destination register
+		machine_code[1] |= (char)reg_list[args[0].value].value << 3; //Set source register
+
+		return 2;
+	/* Immediate value */
+	} else if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
 		if(args[1].value == al) {
 			//8-bits size data
-			machine_code[0] = SUB8;
+			machine_code[0] = SUB_IMM8;
 
 			//Only 8-bit
 			machine_code[1] = (char)args[0].value;
@@ -513,7 +535,7 @@ int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 			return 2;
 		} else if(args[1].value == ax) {
 			//16-bit size data
-			machine_code[0] = SUB16;
+			machine_code[0] = SUB_IMM16;
 
 			/* Move 16-bits data in little endian */
 			machine_code[1] = args[0].value & 0xff; //Lowest 8-bits
@@ -521,9 +543,14 @@ int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 
 			return 3;
 		}
+
+		printf("afu_as: error: \"sub\" instructuion can only subtract an immediate value to"
+			" al/ax register\n");
+
+		return -1;
 	}
 
-	printf("afu_as: error: \"sub\" instructuion can only subtract an immediate value to al/ax register\n");
+	printf("afu_as: error: unsupported or invalid instruction operand for \"sub\" instruction\n");
 	return -1;
 }
 
@@ -559,7 +586,7 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 
 		return 2;
 	/* Immediate value */
-	} else if(args[0].type == DIRECT_VALUE & args[1].type == REGISTER) {
+	} else if(args[0].type == DIRECT_VALUE && args[1].type == REGISTER) {
 		if(is_8bit_reg(args[1].value)) {
 			//w-bit = 0
 			machine_code[0] = MOV_IMM16 | reg_list[args[1].value].value;
