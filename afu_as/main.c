@@ -50,7 +50,7 @@ reg_t reg_list[] = {
 int main(int argc, char **argv)
 {
 	char src_memory_pool[1024] = {'\0'};
-	char bin_memory_pool[1024] = {'\0'};
+	char bin_memory_pool[512] = {'\0'};
 
 	if(argc != 3) {
 		printf("afu as: simple 16-bit x86 assembler\n"
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	if(write_size != -1) {
 		//Succeed to generate the binary file
 		FILE *binary = fopen(argv[2], "wb+");
-		fwrite(bin_memory_pool, sizeof(char), write_size, binary);
+		fwrite(bin_memory_pool, sizeof(char), 512/*write_size*/, binary);
 		fclose(binary);
 	}
 
@@ -130,6 +130,10 @@ int generate_binary(char *source_code, char *binary)
 
 		line_start = line_end + 1;
 	}
+
+	/* Add boot signature */
+	binary[510] = 0x55;
+	binary[511] = 0xaa;
 
 	return bin_pos;
 }
