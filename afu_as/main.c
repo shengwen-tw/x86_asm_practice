@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 	size_t write_size = generate_binary(src_memory_pool, bin_memory_pool);
 	if(write_size != -1) {
 		//Succeed to generate the binary file
-		FILE *binary = fopen(argv[2], "wb+");
+		FILE *binary = fopen(argv[2], "wb");
 		fwrite(bin_memory_pool, sizeof(char), 512/*write_size*/, binary);
 		fclose(binary);
 	}
