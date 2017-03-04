@@ -17,3 +17,19 @@ mov $imm, %reg
 mov %reg, %reg
 
 int $imm8
+
+# Build
+
+```
+make
+```
+
+# Simulation
+
+```
+make test_as
+
+make floppy
+
+make qemu
+```
