@@ -10,8 +10,6 @@ int parse_instruction(char *line_start, char *line_end, char *binary_code);
 int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
-int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
-int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code);
 
 /* Define supported instruction for this assembler */
@@ -19,7 +17,6 @@ instruction_list_t instruction_list[INSTRUCTION_CNT] = {
 	DEF_INSTRUCTION(add),
 	DEF_INSTRUCTION(sub),
 	DEF_INSTRUCTION(mov),
-	DEF_INSTRUCTION(push),
 	DEF_INSTRUCTION(int)	
 };
 
@@ -547,32 +544,6 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 
 	printf("afu_as: error: unsupported or invalid instruction operand for \"mov\" instruction\n");
 	return -1;
-}
-
-int push_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
-{
-	if(arg_cnt > 1) {
-		printf("afu_as: error: too many argument for \"push\" instruction\n");
-		return -1;
-	} else if (arg_cnt < 1) {
-		printf("afu_as: error: too few argument for \"push\" instruction\n");
-		return -1;
-	}
-
-	return 0;
-}
-
-int pop_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
-{
-	if(arg_cnt > 1) {
-		printf("afu_as: error: too many argument for \"pop\" instruction\n");
-		return -1;
-	} else if (arg_cnt < 1) {
-		printf("afu_as: error: too few argument for \"pop\" instruction\n");
-		return -1;
-	}
-
-	return 0;
 }
 
 int int_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)

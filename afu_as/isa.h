@@ -20,8 +20,6 @@ enum {
 	_add,
 	_sub,
 	_mov,
-	_push,
-	_pop,
 	_int,
 	INSTRUCTION_CNT	
 } SUPPORT_INSTRUCTIONS;
