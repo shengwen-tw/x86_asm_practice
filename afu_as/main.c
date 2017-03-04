@@ -443,7 +443,8 @@ int add_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		return 2;
 	}
 
-	return 0;
+	printf("afu_as: error: unsupported or invalid instruction operand for \"add\" instruction\n");
+	return -1;
 }
 
 int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
@@ -477,7 +478,7 @@ int sub_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		}
 	}
 
-	printf("afu_as: error: only support al/ax register immediate value operation\n");
+	printf("afu_as: error: \"sub\" instructuion can only subtract an immediate value to al/ax register\n");
 	return -1;
 }
 
@@ -537,7 +538,7 @@ int mov_handler(instruction_arg_t *args, int arg_cnt, char *machine_code)
 		}
 	}
 
-	printf("afu_as: error: unsupported or invalid instruction operand\n");
+	printf("afu_as: error: unsupported or invalid instruction operand for \"mov\" instruction\n");
 	return -1;
 }
 
